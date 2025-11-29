@@ -1,68 +1,90 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Research Hub (Gemini 2.5 Flash)</title>
     
-    <meta name="theme-color" content="#166534"/>
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icon-192.png" type="image/png">
-    <title>Stock Research Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f0f4f8; }
         .card { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-        .gemini-result { white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow-y: auto; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; }
-        .btn-group button { transition: all 0.2s ease-in-out; }
-        .btn-group button:hover { transform: translateY(-2px); }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        .gemini-result { white-space: pre-wrap; word-wrap: break-word; max-height: 500px; overflow-y: auto; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; line-height: 1.6; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Markdown-like styling for results */
+        .gemini-result h2 { font-weight: bold; font-size: 1.2em; margin-top: 1em; color: #1e3a8a; }
+        .gemini-result ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .gemini-result li { margin-bottom: 0.5em; }
+        .gemini-result strong { color: #111827; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen px-4 py-8">
-    <div class="w-full max-w-lg bg-white rounded-xl card p-8 sm:p-10">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-green-800 pt-8">Stock Research Hub</h1>
-            <p class="text-gray-500 mt-2">บทวิเคราะห์หุ้นและหัวข้อต่างๆ</p>
+
+    <div class="w-full max-w-lg bg-white rounded-xl card p-8 sm:p-10 relative">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">Stock Research Hub</h1>
+            <p class="text-green-600 font-medium text-sm mt-1">Made by BAM Teerawat</p>
         </div>
 
         <div class="space-y-4">
             <div>
-                <label for="ticker" class="block text-sm font-medium text-gray-700 mb-1">ชื่อย่อหุ้น (Ticker)</label>
-                <input type="text" id="ticker" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="กรอกชื่อหุ้นตรงนี้เลยไอ้น้อง ไทย นอกจัดมา" required autofocus>
+                <label for="ticker" class="block text-sm font-bold text-gray-700 mb-2">ชื่อย่อหุ้น (Ticker)</label>
+                <div class="relative">
+                    <input type="text" id="ticker" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg uppercase tracking-wide placeholder-gray-400" 
+                        placeholder="เช่น PTT, AAPL, TSM" required autofocus>
+                </div>
             </div>
         </div>
 
-        <div class="mt-6 border-t pt-6">
-            <div class="space-y-3 btn-group">
-                <button type="button" id="n8nSubmitButton" class="w-full flex justify-center items-center bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 shadow-md">
-                    <span> ส่งคำขอวิเคราะห์แบบลึกๆ (E-Mail)</span>
+        <div class="mt-8 space-y-3">
+            <button type="button" id="n8nSubmitButton" class="w-full group relative flex justify-center items-center bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-all shadow-md active:scale-[0.98]">
+                <span>📨 ส่งวิเคราะห์เข้า Email (Deep Analysis)</span>
+            </button>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" id="summarizeNewsBtn" class="flex justify-center items-center bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]">
+                    <span>📰 สรุปข่าวล่าสุด</span>
                 </button>
-                <button type="button" id="summarizeNewsBtn" class="w-full flex justify-center items-center bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 shadow-md">
-                     <span>  ข่าวล่าสุดหุ้นตัวนี้</span>
-                </button>
-                <button type="button" id="suggestSimilarBtn" class="w-full flex justify-center items-center bg-sky-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-sky-700 shadow-md">
-                     <span>  หุ้นที่คล้ายกัน</span>
+                <button type="button" id="suggestSimilarBtn" class="flex justify-center items-center bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-all shadow-md active:scale-[0.98]">
+                    <span>🤝 หุ้นคู่แข่ง</span>
                 </button>
             </div>
         </div>
         
-        <div id="statusMessage" class="mt-6 text-center text-sm"></div>
+        <div id="statusMessage" class="mt-6 text-center text-sm font-medium min-h-[20px]"></div>
 
-        <div id="geminiResultCard" class="mt-6 hidden">
-            <h3 class="font-bold text-gray-800 mb-2">ผลลัพธ์จาก Gemini:</h3>
+        <div id="geminiResultCard" class="mt-6 hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-bold text-gray-800">💡 ผลลัพธ์จาก AI:</h3>
+                <button onclick="copyToClipboard()" class="text-xs text-gray-500 hover:text-blue-600 underline">Copy</button>
+            </div>
             <div id="geminiResultContent" class="text-gray-700 text-sm gemini-result"></div>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const n8nWebhookUrl = "https://my-n8n-system-email.duckdns.org/webhook/eeaef21a-6c9e-4745-9da6-31dba189d63d/eeaef21a-6c9e-4745-9da6-31dba189d63d/analyze/:ticker";
-        const geminiApiKey = "AIzaSyDZr_bh6Ue2Rm69fcQtC-B0NdjDczd5knk";
+        // ==========================================
+        //  ⚙️ ส่วนตั้งค่า (CONFIGURATION)
+        // ==========================================
+        
+        // 1. ใส่ API Key ของคุณตรงนี้ (ห้ามลบเครื่องหมายคำพูด)
+        const geminiApiKey = "AIzaSyDZr_bh6Ue2Rm69fcQtC-B0NdjDczd5knk"; 
 
-        // --- ELEMENTS ---
+        // 2. URL ของ n8n Webhook
+        const n8nWebhookUrl = "https://my-n8n-system-email.duckdns.org/webhook/eeaef21a-6c9e-4745-9da6-31dba189d63d/eeaef21a-6c9e-4745-9da6-31dba189d63d/analyze/:ticker";
+
+        // 3. ชื่อ Model (ตามที่คุณเช็คมาล่าสุด)
+        const MODEL_NAME = 'gemini-2.5-flash';
+
+        // ==========================================
+        //  🔧 ส่วนการทำงาน (LOGIC)
+        // ==========================================
+
         const tickerInput = document.getElementById('ticker');
         const statusMessage = document.getElementById('statusMessage');
         const n8nSubmitButton = document.getElementById('n8nSubmitButton');
@@ -71,55 +93,81 @@
         const geminiResultCard = document.getElementById('geminiResultCard');
         const geminiResultContent = document.getElementById('geminiResultContent');
 
-        // --- N8N FUNCTION ---
-        n8nSubmitButton.addEventListener('click', function() {
-            const ticker = tickerInput.value.toUpperCase();
-            if (!ticker) {
-                statusMessage.textContent = 'กรุณากรอกชื่อย่อหุ้นก่อน';
-                statusMessage.className = 'mt-6 text-center text-sm text-red-500';
-                return;
+        // ฟังก์ชันช่วย: จัดการปุ่ม Loading
+        function setLoading(button, isLoading, loadingText = "") {
+            const textSpan = button.querySelector('span');
+            if (isLoading) {
+                button.disabled = true;
+                button.classList.add('opacity-75', 'cursor-not-allowed');
+                button.dataset.originalText = textSpan ? textSpan.textContent : '';
+                if(textSpan) textSpan.innerHTML = `<div class="loader mr-2"></div> ${loadingText}`;
+            } else {
+                button.disabled = false;
+                button.classList.remove('opacity-75', 'cursor-not-allowed');
+                if(textSpan && button.dataset.originalText) textSpan.textContent = button.dataset.originalText;
             }
-            const finalUrl = n8nWebhookUrl + ticker;
+        }
+
+        // ฟังก์ชันช่วย: แสดงข้อความสถานะ
+        function showStatus(msg, type = 'info') {
+            statusMessage.textContent = msg;
+            if (type === 'error') statusMessage.className = 'mt-6 text-center text-sm text-red-600 font-bold';
+            else if (type === 'success') statusMessage.className = 'mt-6 text-center text-sm text-green-600 font-bold';
+            else statusMessage.className = 'mt-6 text-center text-sm text-gray-600 animate-pulse';
+        }
+
+        // 1. Logic ปุ่ม n8n (ส่ง Email)
+        n8nSubmitButton.addEventListener('click', function() {
+            const ticker = tickerInput.value.toUpperCase().trim();
+            if (!ticker) { showStatus('⚠️ กรุณากรอกชื่อหุ้นก่อน', 'error'); return; }
+
+            const finalUrl = n8nWebhookUrl.replace(':ticker', ticker);
             
-            setLoading(n8nSubmitButton, true);
-            statusMessage.textContent = `กำลังส่งคำขอวิเคราะห์ ${ticker} ไปยัง n8n...`;
-            statusMessage.className = 'mt-6 text-center text-sm text-green-600';
+            setLoading(n8nSubmitButton, true, "กำลังส่งข้อมูล...");
+            showStatus(`กำลังส่งคำขอวิเคราะห์ ${ticker} ไปยังระบบ Email...`);
             geminiResultCard.classList.add('hidden');
 
             fetch(finalUrl)
-                .then(response => { if (response.ok) return response.json(); throw new Error('Network response not ok.'); })
-                .then(data => {
-                    statusMessage.textContent = `ส่งคำขอสำเร็จ! กรุณาตรวจสอบอีเมลของคุณในอีกประมาณ 1-5 นาที`;
-                    statusMessage.className = 'mt-6 text-center text-sm text-green-600 font-semibold';
+                .then(response => {
+                    // n8n อาจจะตอบกลับเป็น Text หรือ JSON หรือแค่ 200 OK
+                    if (response.ok) {
+                        showStatus(`✅ ส่งคำขอสำเร็จ! กรุณาเช็ค Email ใน 1-3 นาที`, 'success');
+                    } else {
+                        throw new Error(`Server status: ${response.status}`);
+                    }
                 })
                 .catch(error => {
-                    console.error('n8n Fetch Error:', error);
-                    statusMessage.textContent = 'เกิดข้อผิดพลาดกับ n8n! กรุณาตรวจสอบว่าเซิร์ฟเวอร์ของคุณออนไลน์';
-                    statusMessage.className = 'mt-6 text-center text-sm text-red-600 font-semibold';
+                    console.error('n8n Error:', error);
+                    showStatus(`❌ เกิดข้อผิดพลาด: ${error.message}`, 'error');
                 })
-                .finally(() => {
-                    setLoading(n8nSubmitButton, false);
-                });
+                .finally(() => setLoading(n8nSubmitButton, false));
         });
-        
-        // --- GEMINI API FUNCTIONS ---
+
+        // 2. Logic เรียก Gemini API
         async function callGeminiApi(prompt, button, useGrounding = false) {
-            const ticker = tickerInput.value.toUpperCase();
-            if (!ticker) {
-                statusMessage.textContent = 'กรุณากรอกชื่อย่อหุ้น';
-                statusMessage.className = 'mt-6 text-center text-sm text-red-500';
+            const ticker = tickerInput.value.toUpperCase().trim();
+            if (!ticker) { showStatus('⚠️ กรุณากรอกชื่อหุ้นก่อน', 'error'); return; }
+            
+            // เช็คว่าใส่ Key หรือยัง
+            if (geminiApiKey.includes("ใส่_API_KEY")) {
+                showStatus('❌ กรุณาใส่ API Key ในโค้ดก่อนใช้งาน', 'error');
                 return;
             }
-            
-            setLoading(button, true);
-            statusMessage.textContent = 'กำลังสื่อสารกับ Gemini... ';
-            statusMessage.className = 'mt-6 text-center text-sm text-indigo-600';
-            geminiResultCard.classList.add('hidden');
 
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            setLoading(button, true, "AI กำลังคิด...");
+            showStatus('Gemini 2.5 Flash กำลังทำงาน...');
+            geminiResultCard.classList.add('hidden');
+            geminiResultContent.textContent = '';
+
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${geminiApiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+
+            // เปิด Google Search Grounding (ถ้าจำเป็น)
             if (useGrounding) {
-                payload.tools = [{ "google_search": {} }];
+                payload.tools = [{ google_search: {} }];
             }
 
             try {
@@ -128,57 +176,56 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error.message || 'Unknown API error');
-                }
+
                 const data = await response.json();
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    geminiResultContent.textContent = data.candidates[0].content.parts[0].text;
-                    geminiResultCard.classList.remove('hidden');
-                    statusMessage.textContent = 'ได้รับผลลัพธ์เรียบร้อย!';
-                    statusMessage.className = 'mt-6 text-center text-sm text-indigo-600 font-semibold';
-                } else {
-                    throw new Error('Invalid response from Gemini API.');
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || `HTTP Error: ${response.status}`);
                 }
+
+                // ดึงข้อความตอบกลับ
+                if (data.candidates && data.candidates[0].content) {
+                    const resultText = data.candidates[0].content.parts.map(p => p.text).join('\n');
+                    
+                    // แสดงผล
+                    geminiResultContent.textContent = resultText;
+                    geminiResultCard.classList.remove('hidden');
+                    showStatus('✅ วิเคราะห์เสร็จสิ้น!', 'success');
+                } else {
+                    throw new Error("AI ไม่ตอบกลับข้อมูล (Empty Response)");
+                }
+
             } catch (error) {
                 console.error('Gemini API Error:', error);
-                statusMessage.textContent = `เกิดข้อผิดพลาดกับ Gemini: ${error.message}`;
-                statusMessage.className = 'mt-6 text-center text-sm text-red-600';
+                showStatus(`❌ เกิดข้อผิดพลาด: ${error.message}`, 'error');
+                geminiResultContent.textContent = `Debug Info:\n${error.message}`;
+                geminiResultCard.classList.remove('hidden');
             } finally {
                 setLoading(button, false);
             }
         }
 
+        // ปุ่ม 2: สรุปข่าว
         summarizeNewsBtn.addEventListener('click', () => {
-            const ticker = tickerInput.value.toUpperCase();
-            if(ticker) {
-                const prompt = `ช่วยค้นหาและสรุปข่าวสารล่าสุดที่สำคัญเกี่ยวกับหุ้น ${ticker} ให้หน่อย ขอเป็นภาษาไทยและสรุปแบบเข้าใจง่ายเป็นข้อๆ`;
-                callGeminiApi(prompt, summarizeNewsBtn, true);
-            }
+            const ticker = tickerInput.value.toUpperCase().trim();
+            const prompt = `ช่วยค้นหาและสรุปข่าวสำคัญล่าสุด 3-5 ข่าว ของหุ้น "${ticker}" ให้หน่อย ขอเป็นภาษาไทย สรุปสั้นๆ เข้าใจง่าย แยกเป็นข้อๆ`;
+            callGeminiApi(prompt, summarizeNewsBtn, true); // true = ใช้ Grounding (Search)
         });
 
+        // ปุ่ม 3: หุ้นคู่แข่ง
         suggestSimilarBtn.addEventListener('click', () => {
-            const ticker = tickerInput.value.toUpperCase();
-            if(ticker) {
-                const prompt = `ช่วยแนะนำหุ้นในอุตสาหกรรมเดียวกันที่คล้ายกับ ${ticker} มา 3 ตัว พร้อมเหตุผลสั้นๆ ว่าทำไมแต่ละตัวถึงน่าสนใจ ขอเป็นภาษาไทย`;
-                callGeminiApi(prompt, suggestSimilarBtn, true);
-            }
+            const ticker = tickerInput.value.toUpperCase().trim();
+            const prompt = `หุ้น "${ticker}" ทำธุรกิจอะไร? และช่วยแนะนำหุ้นคู่แข่งในอุตสาหกรรมเดียวกันมา 3 ตัว พร้อมเหตุผลสั้นๆ ว่าทำไมถึงน่าสนใจ (ตอบเป็นภาษาไทย)`;
+            callGeminiApi(prompt, suggestSimilarBtn, false); // false = ไม่ต้อง Search (ใช้ความรู้ AI)
         });
 
-        function setLoading(button, isLoading) {
-            const textSpan = button.querySelector('span');
-            if (isLoading) {
-                button.disabled = true;
-                if(textSpan) textSpan.innerHTML = '<div class="loader"></div>';
-            } else {
-                button.disabled = false;
-                if (button.id === 'n8nSubmitButton') textSpan.textContent = ' ส่งคำขอวิเคราะห์แบบลึกๆ (E-Mail)';
-                if (button.id === 'summarizeNewsBtn') textSpan.textContent = '  ข่าวล่าสุดหุ้นตัวนี้';
-                if (button.id === 'suggestSimilarBtn') textSpan.textContent = '  หุ้นที่คล้ายกัน';
-            }
+        // ฟังก์ชัน Copy
+        function copyToClipboard() {
+            const text = geminiResultContent.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('คัดลอกข้อความแล้ว!');
+            });
         }
     </script>
 </body>
-
 </html>
